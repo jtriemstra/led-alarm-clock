@@ -48,16 +48,18 @@ public class MainActivity extends Activity {
             m_objWriter.write("f");
             m_objWriter.flush();
 
-            byte[] objBuffer = new byte[7];
+            byte[] objBuffer = new byte[8];
+            Log.d(TAG, new String(objBuffer, "ASCII"));
 
             int intActualBytesRead = 0, intTotalBytesRead = 0;
-            while (intTotalBytesRead < 7)
+            while (intTotalBytesRead < 8)
             {
-                intActualBytesRead = m_objReadStream.read(objBuffer, intTotalBytesRead, 7 - intTotalBytesRead);
+                intActualBytesRead = m_objReadStream.read(objBuffer, intTotalBytesRead, 8 - intTotalBytesRead);
+                Log.d(TAG, new String(objBuffer, "ASCII"));
+                Log.d(TAG, Integer.toString(intActualBytesRead));
                 intTotalBytesRead += intActualBytesRead;
             }
-            Log.d(TAG, new String(objBuffer, "ASCII"));
-            Log.d(TAG, Integer.toString(intActualBytesRead));
+
         }
         catch (Exception ex)
         {
