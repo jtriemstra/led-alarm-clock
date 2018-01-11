@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -47,19 +48,25 @@ public class MainActivity extends Activity {
         {
             m_objWriter.write("f");
             m_objWriter.flush();
+            final int BUFFER_SIZE = 16;
 
-            byte[] objBuffer = new byte[8];
+            byte[] objBuffer = new byte[BUFFER_SIZE];
             Log.d(TAG, new String(objBuffer, "ASCII"));
 
             int intActualBytesRead = 0, intTotalBytesRead = 0;
-            while (intTotalBytesRead < 8)
+            while (intTotalBytesRead < BUFFER_SIZE)
             {
-                intActualBytesRead = m_objReadStream.read(objBuffer, intTotalBytesRead, 8 - intTotalBytesRead);
+                intActualBytesRead = m_objReadStream.read(objBuffer, intTotalBytesRead, BUFFER_SIZE - intTotalBytesRead);
                 Log.d(TAG, new String(objBuffer, "ASCII"));
                 Log.d(TAG, Integer.toString(intActualBytesRead));
                 intTotalBytesRead += intActualBytesRead;
             }
 
+            String strFetchedData = new String(objBuffer, "ASCII");
+            EditText objCurrentTimeInput = (EditText) findViewById(R.id.current_time_input);
+            objCurrentTimeInput.setText(strFetchedData.substring(0, 8));
+            EditText objAlarmTimeInput = (EditText) findViewById(R.id.alarm_time_input);
+            objAlarmTimeInput.setText(strFetchedData.substring(8, 16));
         }
         catch (Exception ex)
         {
@@ -141,7 +148,28 @@ public class MainActivity extends Activity {
     
     public void onSave(View v)
     {
+        if (m_objReader == null || m_objWriter == null)
+        {
+            Log.d(TAG, "reader/writer null");
+            return;
+        }
 
+        try
+        {
+            m_objWriter.write("s");
+            m_objWriter.flush();
+            final int BUFFER_SIZE = 16;
+
+            EditText objCurrentTimeInput = (EditText) findViewById(R.id.current_time_input);
+            Log.d(TAG, objCurrentTimeInput.getText().toString());
+            m_objWriter.write(objCurrentTimeInput.getText().toString());
+            EditText objAlarmTimeInput = (EditText) findViewById(R.id.alarm_time_input);
+            m_objWriter.write(objAlarmTimeInput.getText().toString());
+        }
+        catch (Exception ex)
+        {
+            Log.e(TAG, "error saving", ex);
+        }
     }
 
     public void onSaveDebug(View v) throws Exception
