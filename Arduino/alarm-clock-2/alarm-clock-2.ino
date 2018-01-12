@@ -1,8 +1,18 @@
+#include <Adafruit_NeoPixel.h>
 #include <Wire.h>
 #include <DS3231.h>
 
+const int LED_PIN = 12;
+const int STRING_LENGTH = 1;
+const int ALARM_DURATION_MIN = 20;
+
 DS3231 rtc(SDA, SCL);
 Time objAlarmStart;
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRING_LENGTH, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+bool blnAlarmOn;
+int intCurrentRed, intCurrentGreen, intCurrentBlue;
+int intAlarmLoop;
 
 void setup() {
   // put your setup code here, to run once:
@@ -10,10 +20,45 @@ void setup() {
   rtc.begin();
 
   objAlarmStart = getNullTime();
+  
+  strip.begin();
+  strip.show(); // Initialize all pixels to 'off'
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  handleCommand();
+  doAlarm();
+  
+  delay(1000);
+}
+
+void doAlarm()
+{
+  if (isAlarmOn())
+  {
+    blnAlarmOn = true;
+  }
+  else {
+    blnAlarmOn = false;
+    intCurrentRed = intCurrentGreen = intCurrentBlue = 0;
+    intAlarmLoop = 0;
+  }
+  
+  if (blnAlarmOn){
+    intAlarmLoop++;
+    if (intAlarmLoop >= 768) {}
+    else if (intAlarmLoop >= 512){ intCurrentBlue = intAlarmLoop - 512; }
+    else if (intAlarmLoop >= 256){ intCurrentGreen = intAlarmLoop - 256; }
+    else{ intCurrentRed = intAlarmLoop; }
+  }
+
+  strip.setPixelColor(0, strip.Color(intCurrentRed, intCurrentGreen, intCurrentBlue));
+  strip.show();
+}
+
+void handleCommand()
+{
   if(Serial.available())
   {
     char commandChar = Serial.read();
@@ -54,8 +99,6 @@ void loop() {
         break;
     }
   }
-
-  delay(1000);
 }
 
 void printTime(Time in)
@@ -107,5 +150,44 @@ Time createTime(int hour, int min, int sec)
 bool isNullTime(Time in)
 {
   return in.hour == 0 && in.min == 0 && in.sec == 0;
+}
+
+bool isAlarmOn()
+{
+  Time objAlarmEnd = addMinutes(objAlarmStart, ALARM_DURATION_MIN);
+  return isTimeBetween(objAlarmStart, objAlarmEnd, rtc.getTime());
+}
+
+Time addMinutes(Time objTime, int intMinutes)
+{
+  Time objReturn;
+  objReturn.hour = objTime.hour;
+  objReturn.min = objTime.min;
+  objReturn.sec = objTime.sec;
+
+  objReturn.min = objReturn.min + intMinutes;
+  while (objReturn.min >= 60)
+  {
+    objReturn.min = objReturn.min - 60;
+    objReturn.hour = objReturn.hour + 1;
+  }
+
+  while (objReturn.hour >= 24)
+  {
+    objReturn.hour = objReturn.hour - 24;
+  }
+  
+  return objReturn;
+}
+
+bool isTimeBetween(Time objStart, Time objEnd, Time objCheck)
+{
+  if (objStart.hour < objCheck.hour && objCheck.hour < objEnd.hour) return true;
+  if (objStart.hour == objCheck.hour && objCheck.hour < objEnd.hour && objStart.min < objCheck.min) return true;
+  if (objStart.hour < objCheck.hour && objCheck.hour == objEnd.hour && objCheck.min < objEnd.min) return true;
+  if (objStart.hour == objCheck.hour && objCheck.hour == objEnd.hour && objStart.min < objCheck.min && objCheck.min < objEnd.min) return true;
+  if (objStart.hour == objCheck.hour && objCheck.hour == objEnd.hour && objStart.min == objCheck.min && objCheck.min < objEnd.min) return true;
+  
+  return false;
 }
 
